@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"github.com/zssky/log"
-//	. "github.com/pingcap/check"
+	//	. "github.com/pingcap/check"
 
 	"github.com/taorenhai/ancestor/client"
 )

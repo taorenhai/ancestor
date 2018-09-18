@@ -338,11 +338,7 @@ func (r *replica) reverseScan(eng engine.Engine, req *meta.ReverseScanRequest, r
 }
 
 // scan resolve scanRequest
-func (r *replica) scanInternal(snapshot engine.Engine, startKey, endKey meta.Key,
-	reqTxn *meta.Transaction,
-	ts meta.Timestamp,
-	max int64,
-	reverse bool) ([]meta.KeyValue, error) {
+func (r *replica) scanInternal(snapshot engine.Engine, startKey, endKey meta.Key, reqTxn *meta.Transaction, ts meta.Timestamp, max int64, reverse bool) ([]meta.KeyValue, error) {
 	txnName := reqTxn.Name
 	keyValues := []meta.KeyValue{}
 
@@ -365,12 +361,12 @@ func (r *replica) scanInternal(snapshot engine.Engine, startKey, endKey meta.Key
 	log.Debugf("range:%v %s scan encKey: %v, encEndKey: %v\n", r.rangeID, txnName, encKey, encEndKey)
 
 	// Get a new iterator.
-	iter := snapshot.NewIterator()
+	iter := snapshot.NewIterator(reverse)
 	defer iter.Close()
 
 	// Seeking for the first defined position.
 	if reverse {
-		iter.SeekReverse(encKey)
+		iter.Seek(encKey)
 		if !iter.Valid() {
 			return keyValues, iter.Error()
 		}
@@ -378,7 +374,7 @@ func (r *replica) scanInternal(snapshot engine.Engine, startKey, endKey meta.Key
 		// If the key doesn't exist, the iterator is at the next key that does exist in the database.
 		metaKey := iter.Key()
 		if !metaKey.Less(encKey) {
-			iter.Prev()
+			iter.Next()
 		}
 	} else {
 		iter.Seek(encKey)
@@ -423,7 +419,7 @@ func (r *replica) scanInternal(snapshot engine.Engine, startKey, endKey meta.Key
 			if iter.Valid() {
 				// Move the iterator back, which gets us into the previous row (getMeta
 				// moves us further back to the meta key).
-				iter.Prev()
+				iter.Next()
 			}
 		} else {
 			log.Debugf("range:%v %s scan Seec metaKey Next", r.rangeID, txnName)

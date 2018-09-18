@@ -1,12 +1,5 @@
 all: golint vet serv pd
 
-GLOCK := glock
-
-$(GLOCK): 
-	go get github.com/robfig/glock
-
-build: $(GLOCK)
-	$(GLOCK) sync github.com/taorenhai/ancestor/
 
 golint:
 	golint client/

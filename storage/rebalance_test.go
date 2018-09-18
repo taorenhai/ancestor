@@ -3,9 +3,9 @@ package storage
 import (
 	"testing"
 
+	"github.com/juju/errors"
 	"github.com/taorenhai/ancestor/meta"
 	"github.com/taorenhai/ancestor/util"
-	"github.com/juju/errors"
 	"github.com/zssky/log"
 	"golang.org/x/net/context"
 )

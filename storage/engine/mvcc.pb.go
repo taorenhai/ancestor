@@ -38,7 +38,7 @@ type MVCCValue struct {
 	Deleted bool `protobuf:"varint,1,opt,name=deleted" json:"deleted"`
 	// The value. Nil if deleted is true; not nil otherwise.
 	Value            *ancestor_meta.Value `protobuf:"bytes,2,opt,name=value" json:"value,omitempty"`
-	XXX_unrecognized []byte              `json:"-"`
+	XXX_unrecognized []byte               `json:"-"`
 }
 
 func (m *MVCCValue) Reset()                    { *m = MVCCValue{} }
@@ -73,7 +73,7 @@ type MVCCMetadata struct {
 	// is only a single MVCC metadata row with value inlined, and with
 	// empty timestamp, key_bytes, and val_bytes.
 	Value            *ancestor_meta.Value `protobuf:"bytes,4,opt,name=value" json:"value,omitempty"`
-	XXX_unrecognized []byte              `json:"-"`
+	XXX_unrecognized []byte               `json:"-"`
 }
 
 func (m *MVCCMetadata) Reset()                    { *m = MVCCMetadata{} }

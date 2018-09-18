@@ -91,7 +91,7 @@ func mvccGetInternal(engine Engine, key meta.Key, ts meta.Timestamp) (*meta.Valu
 	log.Debugf("mvccGetInternal latestKey:%v", encKey.String())
 
 	// scans for the first key >= latestKey.
-	iter := engine.NewIterator()
+	iter := engine.NewIterator(false)
 	defer iter.Close()
 
 	iter.Seek(encKey)

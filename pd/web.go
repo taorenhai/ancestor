@@ -190,7 +190,7 @@ func startWebAPI(s *Server) {
 	server = s
 	http.Handle("/", http.FileServer(http.Dir(s.cfg.WebPath)))
 	http.Handle("/api/", newWebRouter())
-//	http.Handle("/debug/pprof/", http.HandlerFunc(pprof.Index))
+	//	http.Handle("/debug/pprof/", http.HandlerFunc(pprof.Index))
 
 	s.stopper.RunWorker(func() {
 		if err := http.ListenAndServe(s.cfg.WebHost, nil); err != nil {

@@ -52,7 +52,7 @@ func (r *replica) Entries(lo, hi, maxSize uint64) ([]raftpb.Entry, error) {
 	var ents []raftpb.Entry
 	expectedi := lo
 
-	it := r.store.engine.NewIterator()
+	it := r.store.engine.NewIterator(false)
 	defer it.Close()
 
 	it.Seek(skey)
@@ -259,7 +259,7 @@ func (r *replica) Snapshot() (raftpb.Snapshot, error) {
 }
 
 func (r *replica) data() ([]byte, error) {
-	it := r.store.engine.NewSnapshot().NewIterator()
+	it := r.store.engine.NewSnapshot().NewIterator(false)
 	defer it.Close()
 
 	var kvs meta.SnapshotKeyValues
@@ -332,7 +332,7 @@ func (r *replica) append(ents []raftpb.Entry) error {
 }
 
 func (r *replica) clear() error {
-	it := r.store.engine.NewIterator()
+	it := r.store.engine.NewIterator(false)
 	defer it.Close()
 
 	for it.Seek(r.rangeDesc.StartKey); it.Valid(); it.Next() {

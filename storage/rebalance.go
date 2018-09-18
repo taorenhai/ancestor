@@ -42,7 +42,7 @@ var (
 )
 
 func (r *replica) getSplitKey(eng engine.Engine, req *meta.GetSplitKeyRequest, resp *meta.GetSplitKeyResponse) error {
-	it := eng.NewIterator()
+	it := eng.NewIterator(false)
 	defer it.Close()
 
 	start := meta.NewMVCCKey(r.rangeDesc.StartKey)

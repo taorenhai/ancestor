@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/zssky/log"
 	. "github.com/pingcap/check"
+	"github.com/zssky/log"
 	"golang.org/x/net/context"
 
 	"github.com/taorenhai/ancestor/client"

@@ -17,9 +17,6 @@ type Iterator interface {
 	// Seek advances the iterator to the first key in the engine which
 	// is >= the provided key.
 	Seek(key []byte)
-	// SeekReverse advances the iterator to the first key in the engine which
-	// is <= the provided key.
-	SeekReverse(key []byte)
 	// Valid returns true if the iterator is currently valid. An
 	// iterator which hasn't been seeked or has gone past the end of the
 	// key range is invalid.
@@ -31,8 +28,6 @@ type Iterator interface {
 	// Prev moves the iterator backward to the previous key/value
 	// in the iteration. After this call, Valid() will be true if the
 	// iterator was not positioned at the first key.
-	Prev()
-	// Key returns the current key as a byte slice.
 	Key() meta.MVCCKey
 	// Value returns the current value as a byte slice.
 	Value() []byte
@@ -98,16 +93,13 @@ type Engine interface {
 	// transaction row timestamp. Rows with timestamps less than the associated
 	// value will be GC'd during compaction.
 	SetGCTimeouts(minTxnTS int64)
-	// ApproximateSize returns the approximate number of bytes the engine is
-	// using to store data for the given range of keys.
-	ApproximateSize(start, end meta.MVCCKey) (uint64, error)
 	// Flush causes the engine to write all in-memory data to disk
 	// immediately.
 	Flush() error
 	// NewIterator returns a new instance of an Iterator over this
 	// engine. The caller must invoke Iterator.Close() when finished with
 	// the iterator to free resources.
-	NewIterator() Iterator
+	NewIterator(reverse bool) Iterator
 	// NewSnapshot returns a new instance of a read-only snapshot
 	// engine. Snapshots are instantaneous and, as long as they're
 	// released relatively quickly, inexpensive. Snapshots are released

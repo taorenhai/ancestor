@@ -8,13 +8,13 @@ import (
 	"time"
 
 	"github.com/coreos/etcd/raft"
+	"github.com/juju/errors"
 	"github.com/taorenhai/ancestor/client"
 	"github.com/taorenhai/ancestor/meta"
 	"github.com/taorenhai/ancestor/storage/engine"
 	"github.com/taorenhai/ancestor/util/cache"
 	"github.com/taorenhai/ancestor/util/retry"
 	"github.com/taorenhai/ancestor/util/stop"
-	"github.com/juju/errors"
 	"github.com/zssky/log"
 	"google.golang.org/grpc"
 )
