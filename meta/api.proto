@@ -1,0 +1,525 @@
+syntax = "proto3";
+package ancestor.meta;
+option go_package = "meta";
+
+import weak "gogoproto/gogo.proto";
+import "data.proto";
+import "metadata.proto";
+import "stats.proto";
+import "errors.proto";
+
+option (gogoproto.sizer_all) = true;
+option (gogoproto.marshaler_all) = true;
+option (gogoproto.unmarshaler_all) = true;
+option (gogoproto.goproto_unrecognized_all) = false;
+
+
+// RequestFlag request's flag
+enum RequestFlag {
+    option (gogoproto.goproto_enum_prefix) = false;
+
+    // InvalidFlag default
+	InvalidFlag = 0;
+
+	// IsLeader cmds run on leader
+	IsLeader = 1;
+
+	// IsRead read-only cmds go through raft and must be proposed on leader
+	IsRead = 2;
+
+	// IsWrite write cmds go through raft and must be proposed on leader
+	IsWrite = 4;
+
+	// IsMaster ts
+	IsMaster = 8;
+
+	// IsSystem for creating and removing replica
+	IsSystem = 16;
+}
+
+// TxnPushType determines what action to take when pushing a transaction.
+enum PushTxnType {
+    option (gogoproto.goproto_enum_prefix) = false;
+
+    // Push the timestamp forward if possible to accommodate a concurrent reader.
+    PUSH_TIMESTAMP = 0;
+    // Abort the transaction if possible to accommodate a concurrent writer.
+    PUSH_ABORT = 1;
+    // Abort the transaction if it's abandoned, but don't attempt to mutate it
+    // otherwise.
+    PUSH_TOUCH = 2;
+}
+
+message RequestHeader {
+    bytes key = 1 [(gogoproto.casttype) = "Key"];
+
+    bytes end_key = 2 [(gogoproto.casttype) = "Key"];
+
+    Timestamp timestamp = 3 [(gogoproto.nullable) = false];
+
+    int64 range_id = 4 [(gogoproto.customname) = "RangeID", (gogoproto.casttype) = "RangeID"];
+
+    Transaction txn = 5;
+
+    RequestFlag flag = 6;
+}
+
+message ResponseHeader {
+    // error is non-nil if an error occurred.
+    Error error = 1;
+
+    Timestamp timestamp = 2 [(gogoproto.nullable) = false];
+
+    Transaction txn = 3;
+}
+
+// A GetRequest is the argument for the Get() method.
+message GetRequest {
+    RequestHeader header = 1 [(gogoproto.nullable) = false, (gogoproto.embed) = true];
+}
+
+// A GetResponse is the return value from the Get() method.
+// If the key doesn't exist, returns nil for Value.Bytes.
+message GetResponse {
+    ResponseHeader header = 1 [(gogoproto.nullable) = false, (gogoproto.embed) = true];
+    KeyValue key_value = 2 [(gogoproto.nullable) = false];
+}
+
+// A PutRequest is the argument to the Put() method.
+message PutRequest {
+    RequestHeader header = 1 [(gogoproto.nullable) = false, (gogoproto.embed) = true];
+    Value value = 2 [(gogoproto.nullable) = false];
+}
+
+// A PutResponse is the return value from the Put() method.
+message PutResponse {
+    ResponseHeader header = 1 [(gogoproto.nullable) = false, (gogoproto.embed) = true];
+}
+
+// A ScanRequest is the argument to the Scan() method. It specifies the
+// start and end keys for an ascending scan of [start,end) and the maximum
+// number of results.
+message ScanRequest {
+    RequestHeader header = 1 [(gogoproto.nullable) = false, (gogoproto.embed) = true];
+    // If 0, there is no limit on the number of retrieved entries. Must be >= 0.
+    int64 max_results = 2;
+}
+
+// A ScanResponse is the return value from the Scan() method.
+message ScanResponse {
+    ResponseHeader header = 1 [(gogoproto.nullable) = false, (gogoproto.embed) = true];
+    // Empty if no rows were scanned.
+    repeated KeyValue rows = 2 [(gogoproto.nullable) = false];
+}
+
+// A ReverseScanRequest is the argument to the ReverseScan() method. It specifies the
+// start and end keys for an descending scan of [start,end) and the maximum
+// number of results.
+message ReverseScanRequest {
+    RequestHeader header = 1 [(gogoproto.nullable) = false, (gogoproto.embed) = true];
+    // If 0, there is no limit on the number of retrieved entries. Must be >= 0.
+    int64 max_results = 2;
+}
+
+// A ReverseScanResponse is the return value from the ReverseScan() method.
+message ReverseScanResponse {
+    ResponseHeader header = 1 [(gogoproto.nullable) = false, (gogoproto.embed) = true];
+    // Empty if no rows were scanned.
+    repeated KeyValue rows = 2 [(gogoproto.nullable) = false];
+}
+
+// A BeginTransactionRequest is the argument to the BeginTransaction() method.
+message BeginTransactionRequest {
+    RequestHeader header = 1 [(gogoproto.nullable) = false, (gogoproto.embed) = true];
+} 
+
+// A BeginTransactionResponse is the return value from the BeginTransaction() method.
+message BeginTransactionResponse {
+    ResponseHeader header = 1 [(gogoproto.nullable) = false, (gogoproto.embed) = true];
+}
+
+// A HeartbeatTransactionRequest is the argument to the HeartbeatTransaction() method.
+message HeartbeatTransactionRequest {
+    RequestHeader header = 1 [(gogoproto.nullable) = false, (gogoproto.embed) = true];
+} 
+
+// A HeartbeatTransactionResponse is the return value from the HeartbeatTransaction() method.
+message HeartbeatTransactionResponse {
+    ResponseHeader header = 1 [(gogoproto.nullable) = false, (gogoproto.embed) = true];
+}
+
+message SetRangeStatsRequest {
+    RequestHeader header = 1 [(gogoproto.nullable) = false, (gogoproto.embed) = true];
+    repeated RangeStatsInfo range_stats_info = 2 [(gogoproto.nullable) = false];
+} 
+
+message SetRangeStatsResponse {
+    ResponseHeader header = 1 [(gogoproto.nullable) = false, (gogoproto.embed) = true]; 
+}
+
+message SetNodeStatsRequest {
+    RequestHeader header = 1 [(gogoproto.nullable) = false, (gogoproto.embed) = true];
+    NodeStatsInfo node_stats_info = 2 [(gogoproto.nullable) = false];
+}
+
+message SetNodeStatsResponse {
+    ResponseHeader header = 1 [(gogoproto.nullable) = false, (gogoproto.embed) = true];
+}
+
+message GetRangeStatsRequest {
+    RequestHeader header = 1 [(gogoproto.nullable) = false, (gogoproto.embed) = true]; 
+    repeated int64 range_ids = 2 [(gogoproto.customname) = "RangeIDs", (gogoproto.casttype) = "RangeID"];
+} 
+
+message GetRangeStatsResponse {
+    ResponseHeader header = 1 [(gogoproto.nullable) = false, (gogoproto.embed) = true];
+    repeated RangeStatsInfo rows = 2;
+}
+
+message GetNodeStatsRequest {
+    RequestHeader header = 1 [(gogoproto.nullable) = false, (gogoproto.embed) = true];
+    repeated int64 node_ids = 2 [(gogoproto.customname) = "NodeIDs", (gogoproto.casttype) = "NodeID"];
+}
+
+message GetNodeStatsResponse {
+    ResponseHeader header = 1 [(gogoproto.nullable) = false, (gogoproto.embed) = true];
+    repeated NodeStatsInfo rows = 2;
+}
+
+
+// An EndTransactionRequest is the argument to the EndTransaction() method. It
+// specifies whether to commit or roll back an extant transaction.
+message EndTransactionRequest {
+    RequestHeader header = 1 [(gogoproto.nullable) = false, (gogoproto.embed) = true];
+    // False to abort and rollback.
+    bool commit = 2;
+    // List of intents written by the transaction.
+    repeated Intent intents = 3 [(gogoproto.nullable) = false];
+}
+
+// An EndTransactionResponse is the return value from the
+// EndTransaction() method. The final transaction record is returned
+// as part of the response header. In particular, transaction status
+// and timestamp will be updated to reflect final committed
+// values. Clients may propagate the transaction timestamp as the // final txn commit timestamp in order to preserve causal ordering
+// between subsequent transactions. CommitWait specifies the commit
+// wait, which is the remaining time the client MUST wait before
+// signalling completion of the transaction to another distributed
+// node to maintain consistency.
+message EndTransactionResponse {
+    ResponseHeader header = 1 [(gogoproto.nullable) = false, (gogoproto.embed) = true];
+}
+
+
+// A ResolveIntentRequest is arguments to the ResolveIntent() method. 
+message ResolveIntentRequest {
+    RequestHeader header = 1 [(gogoproto.nullable) = false, (gogoproto.embed) = true];
+    // List of intents written by the transaction.
+    repeated Intent intents = 3 [(gogoproto.nullable) = false];
+}
+
+// A ResolveIntentResponse is the return value from the ResolveIntent() method.
+message ResolveIntentResponse {
+    ResponseHeader header = 1 [(gogoproto.nullable) = false, (gogoproto.embed) = true];
+}
+
+// A GetRangeDescriptorsRequest is arguments to the GetRangeDescriptors() method.
+message GetRangeDescriptorsRequest {
+    RequestHeader header = 1 [(gogoproto.nullable) = false, (gogoproto.embed) = true];
+}
+
+// A GetRangeDescriptorsResponse is the return value from the GetRangeDescriptors() method.
+message GetRangeDescriptorsResponse {
+    ResponseHeader header = 1 [(gogoproto.nullable) = false, (gogoproto.embed) = true];
+    repeated RangeDescriptor range_descriptor = 2 [(gogoproto.nullable) = true]; 
+}
+
+// SetRangeDescriptorRequest
+message SetRangeDescriptorsRequest { 
+    RequestHeader header = 1 [(gogoproto.nullable) = false, (gogoproto.embed) = true]; 
+    repeated RangeDescriptor range_descriptor =2 [(gogoproto.nullable) = false]; 
+}
+
+// SetRangeDescriptorResponse
+message SetRangeDescriptorsResponse { 
+    ResponseHeader header =1 [(gogoproto.nullable) = false, (gogoproto.embed) = true]; 
+}
+
+message BatchRequest {
+    RequestHeader header = 1 [(gogoproto.nullable) = false, (gogoproto.embed) = true];
+    repeated RequestUnion req = 2 [(gogoproto.nullable) = false];
+    repeated Transaction pushee_txn = 3 [(gogoproto.nullable) = false];
+}
+
+message BatchResponse {
+    ResponseHeader header = 1 [(gogoproto.nullable) = false, (gogoproto.embed) = true];
+    repeated ResponseUnion resp = 2 [(gogoproto.nullable) = false];
+    int32 complete = 3;
+}
+
+// A PushTransactionRequest is the argument to the PushTransaction() method.
+message PushTransactionRequest {
+    RequestHeader header = 1 [(gogoproto.nullable) = false, (gogoproto.embed) = true];
+    bytes pusheekey = 2 [(gogoproto.casttype) = "Key", (gogoproto.customname) = "PusheeKey"];
+    PushTxnType push_type = 3;
+    Timestamp latest_timestamp = 4 [(gogoproto.nullable) = false];
+}
+
+// A PushTransactionResponse is the return status from the PushTransaction() method.
+message PushTransactionResponse {
+    ResponseHeader header = 1 [(gogoproto.nullable) = false, (gogoproto.embed) = true];
+    bool status = 2;
+    // pushee_txn is non-nil if the transaction was pushed and contains
+    // the current value of the transaction.
+    Transaction pushee_txn = 3 ;
+}
+
+// A GetTimestampRequest is the argument for the GetTimestamp() method.
+message GetTimestampRequest {
+    RequestHeader header = 1 [(gogoproto.nullable) = false, (gogoproto.embed) = true];
+}
+
+// A GetTimestampResponse is the return value from the GetTimestamp() method.
+message GetTimestampResponse {
+  ResponseHeader header = 1 [(gogoproto.nullable) = false, (gogoproto.embed) = true];
+}
+
+message GetNewIDRequest {
+    RequestHeader header = 1 [(gogoproto.nullable) = false, (gogoproto.embed) = true];
+} 
+
+message GetNewIDResponse {
+    ResponseHeader header = 1 [(gogoproto.nullable) = false, (gogoproto.embed) = true];
+    int64 id = 2 [(gogoproto.customname) = "ID", (gogoproto.casttype) = "RangeID"];
+}
+
+message GetNodeDescriptorsRequest {
+    RequestHeader header = 1 [(gogoproto.nullable) = false, (gogoproto.embed) = true];
+    repeated int32 node_id = 2 [(gogoproto.customname) = "NodeIDs", (gogoproto.casttype) = "NodeID"];
+}
+
+message GetNodeDescriptorsResponse {
+    ResponseHeader header = 1 [(gogoproto.nullable) = false, (gogoproto.embed) = true];
+    repeated NodeDescriptor node_descriptor = 2 [(gogoproto.nullable) = true];
+}
+
+message SetNodeDescriptorsRequest {
+    RequestHeader header = 1 [(gogoproto.nullable) = false, (gogoproto.embed) = true];
+    repeated NodeDescriptor node_descriptor = 2 [(gogoproto.nullable) = false];
+}
+
+message SetNodeDescriptorsResponse {
+    ResponseHeader header = 1 [(gogoproto.nullable) = false, (gogoproto.embed) = true];
+}
+
+// GetSplitKeyRequest get splitKey from leader node
+message GetSplitKeyRequest {
+    RequestHeader header = 1 [(gogoproto.nullable) = false, (gogoproto.embed) = true];
+
+    // split_size is the size of first half of range
+    int64 split_size = 2;
+}
+
+// GetSplitKeyResponse will return splitKey
+message GetSplitKeyResponse {
+    ResponseHeader header = 1 [(gogoproto.nullable) = false, (gogoproto.embed) = true];
+    bytes split_key = 2 [(gogoproto.casttype) = "Key"];
+    int64 range_bytes = 3;
+    int64 range_count = 4;
+}
+
+// SplitRequest is the pd server's method which split a range into two part ranges
+message SplitRequest {
+    RequestHeader header = 1 [(gogoproto.nullable) = false, (gogoproto.embed) = true];
+
+    // new_range_id cat be got from pd server
+    int64 new_range_id = 2 [(gogoproto.customname) = "NewRangeID", (gogoproto.casttype) = "RangeID"];
+
+    // split_key is the key which split into two parts
+    bytes split_key = 3 [(gogoproto.casttype) = "Key"];
+    int64 new_range_bytes = 4;
+    int64 new_range_count = 5;
+}
+
+// SplitResponse will return two updated range descriptors
+message SplitResponse {
+    ResponseHeader header = 1 [(gogoproto.nullable) = false,
+            (gogoproto.embed) = true];
+
+    repeated RangeDescriptor range_descriptor = 2 [(gogoproto.nullable) = false,
+            (gogoproto.customname) = "RangeDescriptors"];
+}
+
+// AddRaftConfRequest mainly for the raft group member adding new raft member config
+message AddRaftConfRequest {
+    RequestHeader header = 1 [(gogoproto.nullable) = false, (gogoproto.embed) = true];
+    int32 node_id = 2 [(gogoproto.customname) = "NodeID", (gogoproto.casttype) = "NodeID"];
+}
+
+message AddRaftConfResponse {
+    ResponseHeader header = 1 [(gogoproto.nullable) = false, (gogoproto.embed) = true];
+    RangeDescriptor range_descriptor = 2 [(gogoproto.nullable) = false];
+}
+
+// DeleteRaftConfRequest mainly for the raft group member deleting new raft member config
+message DeleteRaftConfRequest {
+    RequestHeader header = 1 [(gogoproto.nullable) = false, (gogoproto.embed) = true];
+    int32 node_id = 2 [(gogoproto.customname) = "NodeID", (gogoproto.casttype) = "NodeID"];
+}
+
+message DeleteRaftConfResponse {
+    ResponseHeader header = 1 [(gogoproto.nullable) = false, (gogoproto.embed) = true];
+    RangeDescriptor range_descriptor = 2 [(gogoproto.nullable) = false];
+}
+
+// CreateReplicaRequest creates new replica in the node with
+message CreateReplicaRequest {
+    RequestHeader header = 1 [(gogoproto.nullable) = false, (gogoproto.embed) = true];
+    RangeDescriptor range_descriptor = 2 [(gogoproto.nullable) = false];
+    int32 node_id = 3 [(gogoproto.customname) = "NodeID", (gogoproto.casttype) = "NodeID"];
+}
+
+message CreateReplicaResponse {
+    ResponseHeader header = 1 [(gogoproto.nullable) = false, (gogoproto.embed) = true];
+}
+
+// RemoveReplicaRequest
+message RemoveReplicaRequest {
+    RequestHeader header = 1 [(gogoproto.nullable) = false, (gogoproto.embed) = true];
+    int32 node_id = 2 [(gogoproto.customname) = "NodeID", (gogoproto.casttype) = "NodeID"];
+}
+
+message RemoveReplicaResponse {
+    ResponseHeader header = 1 [(gogoproto.nullable) = false, (gogoproto.embed) = true];
+}
+
+message UpdateRangeRequest {
+    RequestHeader header = 1 [(gogoproto.nullable) = false, (gogoproto.embed) = true];
+    RangeDescriptor range_descriptor = 2 [(gogoproto.nullable) = false];
+}
+
+message UpdateRangeResponse {
+    ResponseHeader header = 1 [(gogoproto.nullable) = false, (gogoproto.embed) = true];
+}
+
+message CompactLogRequest {
+    RequestHeader header = 1 [(gogoproto.nullable) = false, (gogoproto.embed) = true];
+}
+
+message CompactLogResponse {
+    ResponseHeader header = 1 [(gogoproto.nullable) = false, (gogoproto.embed) = true];
+}
+
+message TransferLeaderRequest {
+    RequestHeader header = 1 [(gogoproto.nullable) = false, (gogoproto.embed) = true];
+    int32 from = 2 [(gogoproto.casttype) = "NodeID"];
+    int32 to = 3 [(gogoproto.casttype) = "NodeID"];
+}
+
+message TransferLeaderResponse {
+    ResponseHeader header = 1 [(gogoproto.nullable) = false, (gogoproto.embed) = true];
+}
+
+// LoadPdConfRequest is the pd server's method which load the config file.
+message LoadPdConfRequest {
+    RequestHeader header = 1 [(gogoproto.nullable) = false, (gogoproto.embed) = true];
+
+    // file_path is config file path
+    string file_path = 2;
+}
+
+// LoadPdConfResponse is the pd server's response for load config file.
+message LoadPdConfResponse {
+    ResponseHeader header = 1 [(gogoproto.nullable) = false, (gogoproto.embed) = true];
+}
+
+
+message BootstrapRequest {
+    RequestHeader header = 1 [(gogoproto.nullable) = false, (gogoproto.embed) = true];
+    string address = 2 ;
+    int64 capacity = 3 ;
+}
+
+message BootstrapResponse {
+    ResponseHeader header = 1 [(gogoproto.nullable) = false, (gogoproto.embed) = true];
+    NodeDescriptor node_descriptor = 2 [(gogoproto.nullable) = false];
+}
+
+
+
+// A RequestUnion contains exactly one of the requests.
+// The values added here must match those in ResponseUnion.
+message RequestUnion {
+    option (gogoproto.onlyone) = true;
+
+    GetRequest get = 1;
+    PutRequest put = 2;
+    ScanRequest scan = 3;
+    ReverseScanRequest reverse_scan = 4;
+    BeginTransactionRequest begin_transaction = 5;
+    EndTransactionRequest end_transaction = 6;
+    HeartbeatTransactionRequest heartbeat_transaction = 7;
+    ResolveIntentRequest resolve_intent = 8;
+    BatchRequest batch = 9;
+    PushTransactionRequest pushtxn = 10;
+    GetTimestampRequest get_timestamp = 11;
+    SetRangeDescriptorsRequest set_range_descriptors = 12;
+    GetRangeDescriptorsRequest get_range_descriptors = 13;
+    SetNodeDescriptorsRequest set_node_descriptors = 14;
+    GetNodeDescriptorsRequest get_node_descriptors = 15;
+    SetRangeStatsRequest set_range_stats = 16;
+    GetRangeStatsRequest get_range_stats = 17;
+    SetNodeStatsRequest set_node_stats = 18;
+    GetNodeStatsRequest get_node_stats = 19;
+    GetNewIDRequest get_new_range_id = 20;
+    GetSplitKeyRequest get_split_key = 21;
+    SplitRequest split = 22;
+    LoadPdConfRequest load_pd_conf = 23;
+    AddRaftConfRequest add_raft_conf = 24;
+    DeleteRaftConfRequest delete_raft_conf = 25;
+    CreateReplicaRequest create_replica = 26;
+    RemoveReplicaRequest remove_replica = 27;
+    UpdateRangeRequest update_range = 28;
+    CompactLogRequest compact_log = 29;
+    TransferLeaderRequest transferLeader = 30;
+    BootstrapRequest bootstrap = 31;
+    
+}
+
+// A ResponseUnion contains exactly one of the responses.
+// The values added here must match those in RequestUnion.
+message ResponseUnion {
+    option (gogoproto.onlyone) = true;
+
+    GetResponse get = 1;
+    PutResponse put = 2;
+    ScanResponse scan = 3;
+    ReverseScanResponse reverse_scan = 4;
+    BeginTransactionResponse begin_transaction = 5;
+    EndTransactionResponse end_transaction = 6;
+    HeartbeatTransactionResponse heartbeat_transaction = 7;
+    ResolveIntentResponse resolve_intent = 8;
+    BatchResponse batch = 9;
+    PushTransactionResponse pushtxn = 10;
+    GetTimestampResponse get_timestamp = 11;
+    SetRangeDescriptorsResponse set_range_descriptors = 12;
+    GetRangeDescriptorsResponse get_range_descriptors = 13;
+    SetNodeDescriptorsResponse set_node_descriptors = 14;
+    GetNodeDescriptorsResponse get_node_descriptors = 15;
+    SetRangeStatsResponse set_range_stats = 16;
+    GetRangeStatsResponse get_range_stats = 17;
+    SetNodeStatsResponse set_node_stats = 18;
+    GetNodeStatsResponse get_node_stats = 19;
+    GetNewIDResponse get_new_range_id = 20;
+    GetSplitKeyResponse get_split_key = 21;
+    SplitResponse split = 22;
+    LoadPdConfResponse load_pd_conf = 23;
+    AddRaftConfResponse add_raft_conf = 24;
+    DeleteRaftConfResponse delete_raft_conf = 25;
+    CreateReplicaResponse create_replica = 26;
+    RemoveReplicaResponse remove_replica = 27;
+    UpdateRangeResponse update_range = 28;
+    CompactLogResponse compact_log = 29;
+    TransferLeaderResponse transferLeader = 30;
+    BootstrapResponse bootstrap = 31;
+}

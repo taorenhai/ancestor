@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="">
+<meta name="author" content="">
+
+<title>ancestor</title>
+
+<link href="//cdn.bootcss.com/bootstrap/3.3.5/css/bootstrap.min.css" rel="stylesheet">
+<script src="//cdn.bootcss.com/jquery/1.11.3/jquery.min.js"></script>
+<script src="//cdn.bootcss.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
+<script src="//cdn.bootcss.com/jquery-cookie/1.4.1/jquery.cookie.js"></script>
+<link href="http://v3.bootcss.com/examples/dashboard/dashboard.css" rel="stylesheet">
+
+</head>
+
+<body>
+
+<nav class="navbar navbar-inverse navbar-fixed-top">
+    <div class="container-fluid">
+        <div class="navbar-header">
+            <a class="navbar-brand" href="#">ancestor</a>
+        </div>
+    </div>
+</nav>
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-sm-3 col-md-2 sidebar">
+            <ul class="nav nav-sidebar">
+                <li id='overview'><a href="#" onclick="jumpPage('overview')">Overview</a></li>
+                <li id='nodes' ><a href="#" onclick="jumpPage('nodes')">Nodes</a></li>
+                <li id='ranges' ><a href="#" onclick="jumpPage('ranges')">Ranges</a></li>
+                <li><a href="#">TODO</a></li>
+            </ul>
+        </div>
+        <div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
+            <iframe id="main" frameborder="0" src="#" frameborder="0" width="100%" height="100%"  ></iframe>
+        </div>
+    </div>
+</div>
+
+
+<script>
+
+$(document).ready(onInit);
+
+function onInit() {
+    var item = $.cookie('currentPage');
+    if (item != null) {
+        modifyMainPage(item);
+        return;
+    }
+
+    modifyMainPage('overview');
+}
+
+function modifyMainPage(item) {
+    $('#main').attr("src", item+".html");  
+    $(".active").attr("class", "");
+    $('#'+item).attr("class", "active");
+}
+
+function jumpPage(uri) {
+    $.cookie('currentPage', uri);
+    modifyMainPage(uri);
+}
+
+
+</script>
+
+</body>
+</html>
+

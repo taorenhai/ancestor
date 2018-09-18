@@ -1,0 +1,56 @@
+syntax = "proto3";
+
+package ancestor.meta;
+option go_package = "meta";
+
+import weak "gogoproto/gogo.proto";
+
+option (gogoproto.sizer_all) = true;
+option (gogoproto.marshaler_all) = true;
+option (gogoproto.unmarshaler_all) = true;
+option (gogoproto.goproto_unrecognized_all) = false;
+
+// RangeStats tracks byte and instance counts for various groups of keys,
+// values, or key-value pairs; see the field comments for details.
+//
+// It also tracks two cumulative ages, namely that of intents and non-live
+// (i.e. GC-able) bytes. This computation is intrinsically linked to
+// last_update_nanos and is easy to get wrong. Updates happen only once every
+// full second, as measured by last_update_nanos/1e9. That is, forward updates
+// don't change last_update_nanos until an update at a timestamp which,
+// truncated to the second, is ahead of last_update_nanos/1e9. Then, that
+// difference in seconds times the base quantity (excluding the currently
+// running update) is added to the age. It gets more complicated when data is
+// accounted for with a timestamp behind last_update_nanos. In this case, if
+// more than a second has passed (computed via truncation above), the ages have
+// to be adjusted to account for this late addition. This isn't hard: add the
+// new data's base quantity times the (truncated) number of seconds behind.
+// Important to keep in mind with those computations is that (x/1e9 - y/1e9)
+// does not equal (x-y)/1e9 in most cases.
+message RangeStatsInfo {
+    uint32 range_id = 1 [(gogoproto.customname) = "RangeID", (gogoproto.casttype) = "RangeID"];
+
+    uint64 node_id = 2 [(gogoproto.customname) = "NodeID", (gogoproto.casttype) = "NodeID"];
+
+    // total_bytes is the number of bytes stored in all non-system
+    // keys, including live, meta, old, and deleted keys.
+    // Only meta keys really account for the "full" key; value
+    // keys only for the timestamp suffix.
+    int64 total_bytes = 3;
+    // total_count is the number of meta keys tracked under total_bytes.
+    int64 total_count = 4;
+
+    bool is_raft_leader = 5;
+    bool is_removed = 6;
+}
+
+message NodeStatsInfo {
+    uint64 node_id = 1 [(gogoproto.customname) = "NodeID", (gogoproto.casttype) = "NodeID"];
+
+    int64 total_bytes = 2;
+    int64 total_count = 3;
+    uint64 leader_count = 4;
+
+    map<int64, RangeStatsInfo> range_stats_info = 5 [(gogoproto.castkey) = "RangeID"];
+}
+

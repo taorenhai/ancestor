@@ -1,0 +1,172 @@
+#ifndef ANCESTOR_DB_H
+#define ANCESTOR_DB_H
+
+#include <stdbool.h>
+#include <stdint.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+// A DBSlice contains read-only data that does not need to be freed.
+typedef struct {
+  char* data;
+  int len;
+} DBSlice;
+
+// A DBString is structurally identical to a DBSlice, but the data it
+// contains must be freed via a call to free().
+typedef struct {
+  char* data;
+  int len;
+} DBString;
+
+typedef struct {
+  int valid;
+  DBSlice key;
+  DBSlice value;
+} DBIterState;
+
+// A DBStatus is an alias for DBString and is used to indicate that
+// the return value indicates the success or failure of an
+// operation. If DBStatus.data == NULL the operation succeeded.
+typedef DBString DBStatus;
+
+typedef struct DBBatch DBBatch;
+typedef struct DBEngine DBEngine;
+typedef struct DBIterator DBIterator;
+typedef struct DBSnapshot DBSnapshot;
+
+// DBOptions contains local database options.
+typedef struct {
+  int64_t cache_size;
+  bool allow_os_buffer;
+  bool logging_enabled;
+} DBOptions;
+
+// Opens the database located in "dir", creating it if it doesn't
+// exist.
+DBStatus DBOpen(DBEngine **db, DBSlice dir, DBOptions options);
+
+// Destroys the database located in "dir". As the name implies, this
+// operation is destructive. Use with caution.
+DBStatus DBDestroy(DBSlice dir);
+
+// Closes the database, freeing memory and other resources.
+void DBClose(DBEngine* db);
+
+// Flushes all mem-table data to disk, blocking until the operation is
+// complete.
+DBStatus DBFlush(DBEngine* db);
+
+// Sets GC timeouts.
+void DBSetGCTimeouts(DBEngine * db, int64_t min_txn_ts);
+
+// Compacts the underlying storage for the key range
+// [start,end]. start==NULL is treated as a key before all keys in the
+// database. end==NULL is treated as a key after all keys in the
+// database. DBCompactRange(db, NULL, NULL) will compact the entire
+// database.
+DBStatus DBCompactRange(DBEngine* db, DBSlice* start, DBSlice* end);
+
+// Returns the approximate file system spaced used by keys in the
+// range [start,end].
+uint64_t DBApproximateSize(DBEngine* db, DBSlice start, DBSlice end);
+
+// Sets the database entry for "key" to "value".
+DBStatus DBPut(DBEngine* db, DBSlice key, DBSlice value);
+
+// Merge the database entry (if any) for "key" with "value".
+DBStatus DBMerge(DBEngine* db, DBSlice key, DBSlice value);
+
+// Retrieves the database entry for "key" at the specified
+// snapshot. If snapshot==NULL retrieves the current database entry
+// for "key".
+DBStatus DBGet(DBEngine* db, DBSnapshot* snapshot, DBSlice key, DBString* value);
+
+// Deletes the database entry for "key".
+DBStatus DBDelete(DBEngine* db, DBSlice key);
+
+// Applies a batch of operations (puts, merges and deletes) to the
+// database atomically.
+DBStatus DBWrite(DBEngine* db, DBBatch *batch);
+
+// Creates a new snapshot of the database for use in DBGet() and
+// DBNewIter(). It is the callers responsibility to call
+// DBSnapshotRelease().
+DBSnapshot* DBNewSnapshot(DBEngine* db);
+
+// Releases a snapshot, freeing up any associated memory and other
+// resources.
+void DBSnapshotRelease(DBSnapshot* snapshot);
+
+// Creates a new database iterator. If snapshot==NULL the iterator
+// will iterate over the current state of the database. It is the
+// callers responsibility to call DBIterDestroy().
+DBIterator* DBNewIter(DBEngine* db, DBSnapshot* snapshot);
+
+// Destroys an iterator, freeing up any associated memory.
+void DBIterDestroy(DBIterator* iter);
+
+// Positions the iterator at the first key that is >= "key".
+DBIterState DBIterSeek(DBIterator* iter, DBSlice key);
+
+// Positions the iterator at the first key in the database.
+DBIterState DBIterSeekToFirst(DBIterator* iter);
+
+// Positions the iterator at the last key in the database.
+DBIterState DBIterSeekToLast(DBIterator* iter);
+
+// Advances the iterator to the next key. After this call,
+// DBIterValid() returns 1 iff the iterator was not positioned at the
+// last key.
+DBIterState DBIterNext(DBIterator* iter);
+
+// Moves the iterator back to the previous key. After this call,
+// DBIterValid() returns 1 iff the iterator was not positioned at the
+// first key.
+DBIterState DBIterPrev(DBIterator* iter);
+
+// Returns any error associated with the iterator.
+DBStatus DBIterError(DBIterator* iter);
+
+// Creates a new batch for performing a series of operations
+// atomically. Use DBWrite() to apply the batch to a database.
+DBBatch* DBNewBatch();
+
+// Destroys a batch, freeing any associated memory.
+void DBBatchDestroy(DBBatch* batch);
+
+// Sets the database entry for "key" to "value".
+void DBBatchPut(DBBatch* batch, DBSlice key, DBSlice value);
+
+// Merge the database entry (if any) for "key" with "value".
+void DBBatchMerge(DBBatch* batch, DBSlice key, DBSlice value);
+
+// Retrieves the database entry for "key" within the specified
+// batch. If the key has not been put or deleted within the batch it
+// is retrieved from the base db.
+DBStatus DBBatchGet(DBEngine* db, DBBatch* batch, DBSlice key, DBString* value);
+
+// Deletes the database entry for "key".
+void DBBatchDelete(DBBatch* batch, DBSlice key);
+
+// Creates a new database iterator that iterates over both the
+// underlying engine and the updates that have been made to batch. It
+// is the callers responsibility to call DBIterDestroy().
+DBIterator* DBBatchNewIter(DBEngine* db, DBBatch* batch);
+
+// Implements the merge operator on a single pair of values. update is
+// merged with existing. This method is provided for invocation from
+// Go code.
+DBStatus DBMergeOne(DBSlice existing, DBSlice update, DBString* new_value);
+
+#ifdef __cplusplus
+}  // extern "C"
+#endif
+
+#endif // ANCESTOR_DB_H
+
+// local variables:
+// mode: c++
+// end:

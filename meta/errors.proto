@@ -1,0 +1,175 @@
+syntax = "proto3";
+package ancestor.meta;
+option go_package = "meta";
+
+import "metadata.proto";
+import "data.proto";
+import weak "gogoproto/gogo.proto";
+
+
+// A RangeNotFoundError indicates that a command was sent to a range
+// which is not hosted on this store.
+message RangeNotFoundError {
+    int64 range_id = 1 [(gogoproto.customname) = "RangeID", (gogoproto.casttype) = "RangeID"];
+}
+
+// A TransactionStatusError indicates that the transaction status is
+// incompatible with the requested operation. This might mean the
+// transaction has already been committed. It might also be the case
+// that the request to modify the transaction failed due to a
+// regression in transaction epoch or timestamp, both of which may
+// only monotonically increase.
+message TransactionStatusError {
+    Transaction txn = 1 [(gogoproto.nullable) = false];
+    string msg = 2;
+    bool retry = 3;
+}
+
+// A WriteIntentError indicates that one or more write intent
+// belonging to another transaction were encountered leading to a
+// read/write or write/write conflict. The keys at which the intent
+// was encountered are set, as are the txn records for the intents'
+// transactions. 
+message WriteIntentError {
+    Intent intent = 1 [(gogoproto.nullable) = false];
+    int32 push_type = 2  [(gogoproto.casttype) = "PushTxnType"];
+    Transaction pusher_txn = 3;
+}
+
+// A WriteTooOldError indicates that a write encountered a versioned
+// value newer than its timestamp, making it impossible to rewrite
+// history. The write should be retried at existing_timestamp+1.
+message WriteTooOldError {
+    Timestamp timestamp = 1 [(gogoproto.nullable) = false];
+    Timestamp existing_timestamp = 2 [(gogoproto.nullable) = false];
+}
+
+
+// A InvalidResponseTypeError indicates that a response Type is invalid
+message InvalidResponseTypeError {
+    string want_type = 1;
+    string actual_type = 2;
+}
+
+// A NotLeaderError indicates that current server not leader
+message NotLeaderError {
+    int32 node_id = 1 [(gogoproto.customname) = "NodeID", (gogoproto.casttype) ="NodeID"];
+}
+
+// A InvalidKeyError indicates that a key is invalid
+message InvalidKeyError {
+}
+
+// A UnmarshalDataError indicates that unmarshal data error
+message UnmarshalDataError {
+    bytes data = 1;
+    string msg = 2;
+}
+
+// A MarshalDataError indicates that marshal data error
+message MarshalDataError {
+    string msg = 1;
+}
+
+// A EnginePutDataError indicates that engine.Put error
+message EnginePutDataError {
+    bytes key = 1 [(gogoproto.casttype) = "Key"];
+    bytes data = 2;
+    string msg = 3;
+}
+
+// A EngineGetDataError indicates that engine.Put error
+message EngineGetDataError {
+    bytes key = 1 [(gogoproto.casttype) = "Key"];
+    string msg = 2;
+}
+
+// A EngineClearDataError indicates that engine Clear error
+message EngineClearDataError {
+    bytes key = 1 [(gogoproto.casttype) = "Key"];
+    string msg = 2;
+}
+
+
+// A InvalidTransactionError indicates that a transaction object is invalid
+message InvalidTransactionError {
+    string msg = 1;
+}
+
+// A InvalidNilDataError indicates that a object is nil
+message InvalidNilDataError {
+    string msg = 1;
+}
+
+// A HeartbeatTransactionError indicates that a HeartbeatTransaction error
+message HeartbeatTransactionError {
+}
+
+
+// A DecodeBytesError indicates that a error for DecodeBytes
+message DecodeBytesError {
+    bytes key = 1 [(gogoproto.casttype) = "Key"];
+    bytes ts_bytes = 2;
+}
+
+// A TransactionAbortedError indicates that the transaction was
+// aborted by another concurrent transaction.
+message TransactionAbortedError {
+   Transaction txn = 1 [(gogoproto.nullable) = false];
+}
+
+// NeedRetryError client need to retry, and inc txn's priority.
+message NeedRetryError {
+    string msg = 1;
+}
+
+// NotExistError key not found.
+message NotExistError {
+    string msg = 1;
+}
+
+// ErrorDetail is a union type containing all available errors.
+message ErrorDetail {
+    option (gogoproto.onlyone) = true;
+    RangeNotFoundError range_not_found = 1;
+    TransactionStatusError transaction_status = 2;
+    WriteIntentError write_intent = 3;
+    WriteTooOldError write_too_old = 4;
+    InvalidResponseTypeError invalid_response_type = 5;
+    NotLeaderError not_leader = 6;
+    InvalidKeyError invalid_key = 7;
+    UnmarshalDataError unmarshal_data = 8;
+    MarshalDataError marshal_data = 9;
+    EnginePutDataError engine_put_data = 10;
+    EngineGetDataError engine_get_data = 11;
+    EngineClearDataError engine_clear_data = 12;
+    InvalidTransactionError invalid_transaction = 13;
+    InvalidNilDataError invalid_nil = 14;
+    HeartbeatTransactionError heartbeat_transaction = 15;
+    DecodeBytesError docode_bytes = 16;
+    TransactionAbortedError transaction_aborted = 17;
+    NeedRetryError need_retry = 18;
+    NotExistError not_exist = 19;
+}
+
+
+// ErrPosition describes the position of an error in a Batch. A simple nullable
+// primitive field would break compatibility with proto3, where primitive fields
+// are no longer allowed to be nullable.
+message ErrPosition {
+    int32 index = 1;
+}
+
+// Error is a generic representation including a string message
+// and information about retryability.
+message Error {
+    option (gogoproto.goproto_stringer) = false;
+
+    // message is a human-readable error message.
+    string message = 1;
+
+    // If an ErrorDetail is present, it may contain additional structured data
+    // about the error.
+    ErrorDetail detail = 2;
+}
+

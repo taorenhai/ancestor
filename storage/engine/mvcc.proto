@@ -1,0 +1,34 @@
+
+syntax = "proto2";
+package ancestor.storage.engine;
+option go_package = "engine";
+
+import "github.com/ancestordb/ancestor/meta/data.proto";
+import weak "gogoproto/gogo.proto";
+
+
+message MVCCValue {
+  // True to indicate a deletion tombstone. If false, value should not
+  // be nil.
+  optional bool deleted = 1 [(gogoproto.nullable) = false];
+  // The value. Nil if deleted is true; not nil otherwise.
+  optional meta.Value value = 2;
+}
+
+// MVCCMetadata holds MVCC metadata for a key. Used by storage/engine/mvcc.go.
+message MVCCMetadata {
+  optional bytes TransactionID  = 1; 
+  // The timestamp of the most recent versioned value.
+  optional meta.Timestamp timestamp = 2 [(gogoproto.nullable) = false];
+  // Is the most recent value a deletion tombstone?
+  optional bool deleted = 3 [(gogoproto.nullable) = false];
+  // Inline value, used for values with zero timestamp. This provides
+  // an efficient short circuit of the normal MVCC metadata sentinel
+  // and subsequent version rows. If timestamp == (0, 0), then there
+  // is only a single MVCC metadata row with value inlined, and with
+  // empty timestamp, key_bytes, and val_bytes.
+  optional meta.Value value = 4;
+
+}
+
+

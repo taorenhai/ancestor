@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title> RangeInfo </title>
+
+<link rel="stylesheet" href="//cdn.bootcss.com/bootstrap/3.3.5/css/bootstrap.min.css">
+<link rel="stylesheet" href="//cdn.bootcss.com/bootstrap/3.3.5/css/bootstrap-theme.min.css">
+<script src="//cdn.bootcss.com/jquery/1.11.3/jquery.min.js"></script>
+<script src="//cdn.bootcss.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
+<link href="http://v3.bootcss.com/examples/dashboard/dashboard.css" rel="stylesheet">
+
+<script src="/js/common.js"></script>
+
+</head>
+<body>
+<script>
+
+function parseRangeInfo(i, range) {
+    html = "<tr onclick='loadRangeInfo("+range.RangeID+")'>";
+    html += "<td>" + range.RangeID  + "</td>";
+    html += "<td>" + range.StartKey + "</td>";
+    html += "<td>" + range.EndKey + "</td>";
+    html += "<td> <div class='progress' style='margin-bottom:0px;position:relative;'>";
+    html += "<div style='position:absolute;left:0;z-index:2;width:100%' align='center'>"+ bytesToSize(range.Bytes)+"("+range.Percent+"%)" + "</div>";
+
+    html += "<div class='progress-bar ";
+    if (range.Percent > 100) {
+        html += "progress-bar-danger ";
+    }else if (range.Percent > 80) {
+        html += "progress-bar-warning ";
+    }else {
+        html += "progress-bar-success ";
+    }
+
+    html += " progress-bar-striped' role='progressbar' aria-valuenow="+range.Percent+"aria-valuemin='0' aria-valuemax='100' style='width: "+range.Percent+"%; position:absolute;left:0;'></div>";
+    html += "</div></td>";
+
+    html += "<td>" + format(range.Keys) + "</td>";
+
+    html += "</tr>";
+
+    $("#info").append(html);
+
+    heightReset();
+}
+
+function onLoadInfoSuccess(data) {
+    $("#info").html("");
+    data = data.sort(function(a,b){return a.RangeID-b.RangeID;});
+    $.each(data, parseRangeInfo);
+    $("#date").html((new Date()).Format("yyyy-MM-dd hh:mm:ss"));
+    $("#count").html(data.length);
+    heightReset();
+}
+
+function loadInfo() {
+    $.getJSON(urlPrefix+"/range", onLoadInfoSuccess);
+}
+
+
+function parseReplicaInfo(i, replica) {
+    html = "<tr>";
+    html += "<td>"+replica.node_id+"</td>";
+    html += "<td>"+replica.total_bytes+"</td>";
+    html += "<td>"+replica.total_count+"</td>";
+
+    if (replica.is_raft_leader == true) {
+        html += "<td><span class='glyphicon glyphicon-flag' aria-hidden='true'></span></td>";
+    }else {
+        html += "<td></td>";
+    }
+    html += "</tr>";
+
+    $("#rangeInfoDetail").append(html);
+
+}
+function onLoadReplicaSuccess(data) {
+    $("#rangeInfoDetail").html("");
+    data = data.sort(function(a,b){return a.node_id - b.node_id;});
+    $.each(data, parseReplicaInfo);
+    $("#rangeInfo").modal();
+    heightReset();
+}
+
+function loadRangeInfo(id) {
+    $.getJSON(urlPrefix+"/range/"+id, onLoadReplicaSuccess)
+}
+
+
+function init() {
+    loadInfo();
+    setInterval(loadInfo, 1000);
+}
+
+
+$(document).ready(init);
+
+</script>
+
+<div class="navbar-fixed-top">
+    <div class="panel panel-default">
+        <div class="panel-heading">Ranges (<span id='count'> </span>)</div>
+        <table class="table table-bordered">
+            <table class="table table-striped table-bordered table-hover">
+                <thead> <tr> <th>ID</th> <th>Start</th> <th>End</th> <th>Size</th><th>Keys</th> </tr> </thead>
+                <tbody id='info'> </tbody>
+            </table>
+        </table>
+        <div class="panel-footer">更新时间&nbsp;<span id='date'></span></div>
+    </div>
+</div>
+
+
+
+<div id='rangeInfo'  class="modal fade" tabindex="-1" role="dialog" >
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header"> 
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                <h4 class="modal-title" id="rangeInfoTitle">Replica</h4>
+            </div>
+            <div class="modal-body">
+                <table class="table table-striped table-bordered table-hover">
+                    <thead>
+                        <tr>
+                            <th>Node</th>
+                            <th>Size</th>
+                            <th>Count</th>
+                            <th>Leader</th>
+                        </tr>
+                    </thead>
+                    <tbody id='rangeInfoDetail'>
+                    </tbody>
+                </table>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+</body>

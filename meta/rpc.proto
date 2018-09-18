@@ -1,0 +1,18 @@
+syntax = "proto3";
+package ancestor.meta;
+option go_package = "meta";
+
+import "raftmetadata.proto";
+import "api.proto";
+
+service RaftMessage {
+    rpc RaftMessage (stream RaftMessageBatchRequest) returns (RaftMessageBatchResponse) {}
+}
+
+service NodeMessage {
+    rpc NodeMessage (BatchRequest) returns (BatchResponse);
+    rpc HeartbeatMessage (HeartbeatRequest) returns (HeartbeatResponse);
+}
+
+message HeartbeatRequest {}
+message HeartbeatResponse {}

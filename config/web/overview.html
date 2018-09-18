@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title> RangeInfo </title>
+
+<link rel="stylesheet" href="//cdn.bootcss.com/bootstrap/3.3.5/css/bootstrap.min.css">
+<link rel="stylesheet" href="//cdn.bootcss.com/bootstrap/3.3.5/css/bootstrap-theme.min.css">
+<script src="//cdn.bootcss.com/jquery/1.11.3/jquery.min.js"></script>
+<script src="//cdn.bootcss.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
+<link href="http://v3.bootcss.com/examples/dashboard/dashboard.css" rel="stylesheet">
+
+<script src="/js/common.js"></script>
+
+</head>
+
+<body>
+<script>
+
+function onLoadInfoSuccess(data) {
+    $("#nodes").html(data.Nodes);
+    $("#keys").html(format(data.Keys));
+    $("#bytes").html(bytesToSize(data.Bytes));
+    $("#ranges").html(data.Ranges);
+    $("#date").html((new Date()).Format("yyyy-MM-dd hh:mm:ss"));
+    heightReset();
+}
+
+function loadInfo() {
+    $.getJSON(urlPrefix+"/stats", onLoadInfoSuccess);
+}
+
+function init() {
+    loadInfo(); 
+    setInterval(loadInfo, 1000); 
+}
+
+$(document).ready(init);
+
+</script>
+
+<div class="navbar-fixed-top">
+    <div class="panel panel-default">
+        <div class="panel-heading">统计</div>
+        <table class="table table-bordered">
+            <tbody>
+            <tr><td scope="row">Node</td><td id='nodes'></td></tr>
+            <tr><td>Range</td><td id='ranges'></td></tr>
+            <tr><td>Key</td><td id='keys'></td></tr>
+            <tr><td>Size</td><td id='bytes'></td></tr>
+            </tbody>
+        </table>
+        <div class="panel-footer">更新时间&nbsp;<span id='date'></span></div>
+    </div>
+</div>
+
+</body>

@@ -1,0 +1,45 @@
+syntax = "proto3";
+package ancestor.meta;
+option go_package = "meta";
+
+import weak "gogoproto/gogo.proto";
+
+option (gogoproto.sizer_all) = true;
+option (gogoproto.marshaler_all) = true;
+option (gogoproto.unmarshaler_all) = true;
+option (gogoproto.goproto_unrecognized_all) = false;
+
+// ReplicaDescriptor describes a replica location by node ID
+message ReplicaDescriptor {
+    int32 node_id = 1 [(gogoproto.customname) = "NodeID", (gogoproto.casttype) = "NodeID"];
+
+    // ReplicaID uniquely identifies a replica instance. If a range is removed from
+    // a store and then re-added to the same store, the new instance will have a
+    // higher ReplicaID.
+    int32 replica_id = 2 [(gogoproto.customname) = "ReplicaID", (gogoproto.casttype) = "ReplicaID"];
+}
+
+// RangeDescriptor is the value stored in a range metadata key.
+// A range is described using an inclusive start key, a non-inclusive end key,
+// and a list of replicas where the range is stored.
+message RangeDescriptor {
+    int64 range_id = 1 [(gogoproto.customname) = "RangeID", (gogoproto.casttype) = "RangeID"];
+    // StartKey is the first key which may be contained by this range.
+    bytes start_key = 2 [(gogoproto.casttype) = "Key"];
+    // EndKey marks the end of the range's possible keys.  EndKey itself is not
+    // contained in this range - it will be contained in the immediately
+    // subsequent range.
+    bytes end_key = 3 [(gogoproto.casttype) = "Key"];
+    // Replicas is the set of nodes/stores on which replicas of this
+    // range are stored, the ordering being arbitrary and subject to
+    // permutation.
+    repeated ReplicaDescriptor replicas = 4 [(gogoproto.nullable) = false];
+}
+
+// NodeDescriptor holds details on node physical/network topology.
+message NodeDescriptor {
+    int32 node_id = 1 [(gogoproto.customname) = "NodeID", (gogoproto.casttype) = "NodeID"];
+    string address = 2;
+    int64 capacity = 3;
+}
+

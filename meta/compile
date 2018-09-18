@@ -1,0 +1,2 @@
+#!/bin/bash
+protoc --proto_path=$GOPATH/src:$GOPATH/src/github.com/gogo/protobuf/protobuf:$GOPATH/src/github.com/gogo/protobuf:$GOPATH/src/github.com/coreos:$GOPATH/src/github.com/taorenhai/ancestor/:./ --gogofast_out=plugins=grpc:. *.proto 
