@@ -123,6 +123,7 @@ func (r *RocksDB) getInternal(key meta.MVCCKey, txn *badger.Txn) ([]byte, error)
 
 	if txn == nil {
 		txn = r.rdb.NewTransaction(false)
+		defer txn.Discard()
 	}
 
 	item, err := txn.Get(key)
@@ -268,8 +269,7 @@ func (r *rocksDBSnapshot) Put(key meta.MVCCKey, value []byte) error {
 	return fmt.Errorf("cannot Put to a snapshot")
 }
 
-// Get returns the value for the given key, nil otherwise using
-// the snapshot handle.
+// Get returns the value for the given key, nil otherwise using the snapshot handle.
 func (r *rocksDBSnapshot) Get(key meta.MVCCKey) ([]byte, error) {
 	return r.parent.getInternal(key, r.handle)
 }
@@ -482,8 +482,10 @@ type rocksDBIterator struct {
 // iterator to free up resources.
 func newRocksDBIterator(rdb *badger.DB, txn *badger.Txn, reverse bool) *rocksDBIterator {
 	if txn != nil {
+		//TODO panic("Only one iterator can be active at one time.")
+		ntxn := *txn
 		return &rocksDBIterator{
-			iter: txn.NewIterator(badger.IteratorOptions{
+			iter: ntxn.NewIterator(badger.IteratorOptions{
 				Reverse: reverse,
 			}),
 		}
