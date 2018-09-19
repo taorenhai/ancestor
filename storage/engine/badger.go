@@ -38,15 +38,6 @@ func NewRocksDB(dir string, cacheSize int64, stopper *stop.Stopper) *RocksDB {
 	}
 }
 
-func newMemRocksDB(cacheSize int64, stopper *stop.Stopper) *RocksDB {
-	return &RocksDB{
-		// dir: empty dir == "mem" RocksDB instance.
-		cacheSize:   cacheSize,
-		stopper:     stopper,
-		deallocated: make(chan struct{}),
-	}
-}
-
 // Open creates options and opens the database. If the database
 // doesn't yet exist at the specified directory, one is initialized
 // from scratch. The RocksDB Open and Close methods are reference
@@ -63,7 +54,11 @@ func (r *RocksDB) Open() error {
 		log.Infof("opening rocksdb instance at %q\n", r.dir)
 	}
 
-	db, err := badger.Open(badger.Options{ValueDir: r.dir})
+	opt := badger.DefaultOptions
+	opt.Dir = fmt.Sprintf("%s/data/", r.dir)
+	opt.ValueDir = fmt.Sprintf("%s/values/", r.dir)
+
+	db, err := badger.Open(opt)
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -132,7 +127,10 @@ func (r *RocksDB) getInternal(key meta.MVCCKey, txn *badger.Txn) ([]byte, error)
 
 	item, err := txn.Get(key)
 	if err != nil {
-		return nil, errors.Trace(err)
+		if err == badger.ErrKeyNotFound {
+			return nil, nil
+		}
+		return nil, errors.Annotatef(err, "key:%v", key)
 	}
 
 	return item.Value()

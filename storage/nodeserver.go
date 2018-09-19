@@ -169,19 +169,13 @@ func (ns *NodeServer) Close() {
 
 // newDBEngine new a DB Engine
 func newDBEngine(dataDir string, stopper *stop.Stopper) (engine.Engine, error) {
-	var eng engine.Engine
-	if len(dataDir) == 0 {
-		eng = engine.NewInMem(cacheSize, stopper).RocksDB
-	} else {
-		eng = engine.NewRocksDB(dataDir, cacheSize, stopper)
+	if dataDir == "" {
+		return nil, errors.Errorf("could not use empty db path")
 	}
 
-	if eng == nil {
-		return nil, errors.Errorf("new Engine failure")
-	}
-
+	eng := engine.NewRocksDB(dataDir, cacheSize, stopper)
 	if err := eng.Open(); err != nil {
-		return nil, errors.Errorf("could not create new db instance: dir:%v err:%v\n", dataDir, err)
+		return nil, errors.Annotatef(err, "dir:%v", dataDir)
 	}
 	return eng, nil
 }

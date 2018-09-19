@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/juju/errors"
 	. "github.com/pingcap/check"
 	"github.com/zssky/log"
 	"golang.org/x/net/context"
@@ -165,7 +166,7 @@ func startNodeServer(configPath string, index int) {
 
 	nodeServers[index], err = storage.NewNodeServer(conf)
 	if nodeServers[index] == nil {
-		log.Fatalf("create node server failure, error: %v", err)
+		log.Fatalf("create node server failure, error: %v", errors.ErrorStack(err))
 	}
 	nodeServers[index].Start()
 }

@@ -80,7 +80,7 @@ func NewStore(id meta.NodeID, serv *grpc.Server, client client.Admin,
 
 	var err error
 	if s.rangeStats, err = s.loadRangeStats(); err != nil {
-		return nil, errors.Errorf("get local node stats err:%v", err)
+		return nil, errors.Annotatef(err, "get local node stats error")
 	}
 
 	s.transport.listen(s.raftMessage)

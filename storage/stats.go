@@ -4,9 +4,11 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/juju/errors"
+	"github.com/zssky/log"
+
 	"github.com/taorenhai/ancestor/meta"
 	"github.com/taorenhai/ancestor/util"
-	"github.com/zssky/log"
 )
 
 var (
@@ -19,7 +21,7 @@ func (s *store) loadRangeStats() (map[meta.RangeID]*meta.RangeStats, error) {
 
 	val, err := s.engine.Get(key)
 	if err != nil {
-		return nil, err
+		return nil, errors.Trace(err)
 	}
 	if val == nil {
 		return rsmap, nil
@@ -27,7 +29,7 @@ func (s *store) loadRangeStats() (map[meta.RangeID]*meta.RangeStats, error) {
 
 	nsi := &meta.NodeStatsInfo{}
 	if err := nsi.Unmarshal(val); err != nil {
-		return nil, err
+		return nil, errors.Trace(err)
 	}
 
 	for id, rsi := range nsi.RangeStatsInfo {
